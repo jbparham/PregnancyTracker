@@ -348,11 +348,21 @@ if _HAS_PYTHONISTA:
                             pbtn.action = (lambda sender, dd=d: self.toggle_period(dd))
                             container.add_subview(pbtn)
 
-                            # sex toggle button (below period button) - heart icon
+                            # sex toggle button (below period button) - heart icon with visible active/inactive states
                             sbtn = ui.Button(frame=(4, cell_h-30, 28, 24))
                             sbtn.title = '♥'
                             sbtn.font = ('<system>', 14)
-                            sbtn.background_color = palette.get('sex', '#ccffcc') if 'sex' in s else '#ffffff'
+                            if 'sex' in s:
+                                # Active state - bright green background with dark green text
+                                sbtn.background_color = '#90EE90'
+                                sbtn.tint_color = '#006400'
+                                sbtn.border_width = 2
+                                sbtn.border_color = '#006400'
+                            else:
+                                # Inactive state - white background with light grey text
+                                sbtn.background_color = '#ffffff'
+                                sbtn.tint_color = '#CCCCCC'
+                                sbtn.border_width = 0
                             sbtn.action = (lambda sender, dd=d: self.toggle_sex(dd))
                             container.add_subview(sbtn)
 
@@ -390,9 +400,11 @@ if _HAS_PYTHONISTA:
             self.build_grid()
 
         def toggle_sex(self, d: date):
+            # Just toggle without animation
             toggle_sex(d)
             self.data = load_data()
             self.build_grid()
+
 
         def show_menu(self, sender):
             # Create menu view with more height for spacing
@@ -837,7 +849,16 @@ def run_tk_ui():
                         p_bg = shades[max(0, min(2, intensity-1))] if intensity > 0 else '#ffffff'
                         pbtn = tk.Button(cell, text='🩸', bg=p_bg, command=lambda dd=d: (toggle_period_day(dd), refresh_calendar(root, nav_state['year'], nav_state['month'])))
                         pbtn.pack(side='top', anchor='w', padx=2, pady=(6,2))
-                        sbtn = tk.Button(cell, text='♥', bg=palette.get('sex', '#ccffcc') if s_active else '#ffffff', command=lambda dd=d: (toggle_sex(dd), refresh_calendar(root, nav_state['year'], nav_state['month'])))
+                        
+                        def sex_button_action(day_date):
+                            toggle_sex(day_date)
+                            refresh_calendar(root, nav_state['year'], nav_state['month'])
+                        
+                        # Make sex button more visible when active - use darker green and add border
+                        if s_active:
+                            sbtn = tk.Button(cell, text='♥', bg='#90EE90', fg='#006400', relief='solid', bd=2, command=lambda dd=d: sex_button_action(dd))
+                        else:
+                            sbtn = tk.Button(cell, text='♥', bg='#ffffff', fg='#CCCCCC', relief='raised', command=lambda dd=d: sex_button_action(dd))
                         sbtn.pack(side='top', anchor='w', padx=2, pady=(0,4))
                     # highlight today
                     if d == today:
