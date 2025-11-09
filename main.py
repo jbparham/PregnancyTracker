@@ -12,6 +12,21 @@ Run inside Pythonista to use the native `ui`/`console` interface. Run on macOS t
 from __future__ import annotations
 from datetime import date, datetime, timedelta
 import sys
+import os
+
+# Ensure local modules are imported from the same directory as this script
+try:
+    _script_dir = os.path.dirname(os.path.realpath(__file__))
+    if _script_dir and _script_dir not in sys.path:
+        sys.path.insert(0, _script_dir)
+except (NameError, Exception):
+    # Fallback for environments where __file__ isn't defined
+    try:
+        _script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+        if _script_dir and _script_dir not in sys.path:
+            sys.path.insert(0, _script_dir)
+    except Exception:
+        pass
 
 # detect platforms
 try:
@@ -707,41 +722,42 @@ def run_tk_ui():
         for i, wd in enumerate(weekdays):
             tk.Label(cal_frame, text=wd, width=6).grid(row=0, column=i)
 
-            # Get predicted cycles and calculate duration
-            period_starts = [p['start'] for p in data.get('periods', [])]
-            durations = [p.get('duration', 5) for p in data.get('periods', [])]
-            pred_duration = int(round(sum(durations) / len(durations))) if durations else 5
-            
-            predictions = predict_from_periods(
-                period_starts,
-                settings.get('cycle_length', 28),
-                settings.get('luteal_phase', 14),
-                lookahead_months=6
-            )
-            
-            # Calculate all predicted period days
-            predicted_days = set()
-            predicted_starts = set()
-            for start_iso in predictions.get('predicted_cycles', []):
-                if start_iso <= today.isoformat():
-                    continue  # skip past/current predictions
-                start_date = datetime.strptime(start_iso, '%Y-%m-%d').date()
-                predicted_starts.add(start_date)
-                # Add all days in the predicted duration
-                for i in range(pred_duration):
-                    predicted_days.add(start_date + timedelta(days=i))
+        # Get today's date first (needed for predictions)
+        today = date.today()
+        
+        # Get predicted cycles and calculate duration
+        period_starts = [p['start'] for p in data.get('periods', [])]
+        durations = [p.get('duration', 5) for p in data.get('periods', [])]
+        pred_duration = int(round(sum(durations) / len(durations))) if durations else 5
+        
+        predictions = predict_from_periods(
+            period_starts,
+            settings.get('cycle_length', 28),
+            settings.get('luteal_phase', 14),
+            lookahead_months=6
+        )
+        
+        # Calculate all predicted period days
+        predicted_days = set()
+        predicted_starts = []  # Use list to match Pythonista implementation
+        for start_iso in predictions.get('predicted_cycles', []):
+            if start_iso <= today.isoformat():
+                continue  # skip past/current predictions
+            start_date = datetime.strptime(start_iso, '%Y-%m-%d').date()
+            predicted_starts.append(start_date)
+            # Add all days in the predicted duration
+            for i in range(pred_duration):
+                predicted_days.add(start_date + timedelta(days=i))
 
-            status_map = day_status_for_month(
-                data.get('periods', []),
-                list(data.get('period_levels', {}).keys()),
-                data.get('sex', []),
-                settings.get('cycle_length', 28),
-                settings.get('luteal_phase', 14),
-                year,
-                month,
-            )
-            
-            today = date.today()
+        status_map = day_status_for_month(
+            data.get('periods', []),
+            list(data.get('period_levels', {}).keys()),
+            data.get('sex', []),
+            settings.get('cycle_length', 28),
+            settings.get('luteal_phase', 14),
+            year,
+            month,
+        )
         for r, week in enumerate(cal):
             for c, day in enumerate(week):
                 if day == 0:
@@ -764,19 +780,6 @@ def run_tk_ui():
                         bg = palette.get('ovulation', '#cce0ff')
                     elif 'sex' in s:
                         bg = palette.get('sex', '#ccffcc')
-                    # Get predicted period starts
-                    period_starts = [p['start'] for p in data.get('periods', [])]
-                    predictions = predict_from_periods(
-                        period_starts,
-                        settings.get('cycle_length', 28),
-                        settings.get('luteal_phase', 14),
-                        lookahead_months=6
-                    )
-                    predicted_starts = set([
-                        datetime.strptime(d, '%Y-%m-%d').date()
-                        for d in predictions.get('predicted_cycles', [])
-                        if d > today.isoformat()  # only future predictions
-                    ])
 
                     cell = tk.Frame(cal_frame, width=48, height=64, bg=bg, relief='ridge', bd=1)
                     cell.grid_propagate(False)
@@ -814,9 +817,16 @@ def run_tk_ui():
                     if 'fertile' in s:
                         bar = tk.Frame(cell, bg=palette.get('fertile', '#ffd0ff'), height=6)
                         bar.pack(fill='x', side='top')
+                    
                     # day number label
                     lbl = tk.Label(cell, text=str(day), bg=bg, fg=palette.get('text', '#000000'))
                     lbl.pack(anchor='nw', padx=2, pady=(4,0))
+                    
+                    # ovulation marker (egg emoji) top-right
+                    if 'ovulation' in s:
+                        ov = tk.Label(cell, text='🥚', font=('TkDefaultFont', 14), bg=bg)
+                        ov.place(x=26, y=2)
+                    
                     # toggles stacked vertically
                     p_active = (intensity > 0) or ('period' in s)
                     s_active = 'sex' in s

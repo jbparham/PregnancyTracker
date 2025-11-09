@@ -16,23 +16,65 @@ import copy
 DATA_FILENAME = "data.json"
 
 
-def _data_path() -> str:
-    # store in the current script folder (Pythonista uses app-local folder)
-    # but Pythonista may not define __file__, so fall back gracefully
-    base = None
+def debug_path_info() -> dict:
+    """Debug helper to see what paths are being detected. Call this from Pythonista console."""
+    info = {}
     try:
-        base = os.path.dirname(__file__)
+        info['__file__'] = __file__
+        info['__file___realpath'] = os.path.realpath(__file__)
+        info['__file___dirname'] = os.path.dirname(os.path.realpath(__file__))
+    except (NameError, Exception) as e:
+        info['__file__'] = f"ERROR: {e}"
+    
+    try:
+        info['sys.argv[0]'] = sys.argv[0] if sys.argv else "None"
+        if sys.argv and sys.argv[0]:
+            info['sys.argv[0]_realpath'] = os.path.realpath(sys.argv[0])
+            info['sys.argv[0]_dirname'] = os.path.dirname(os.path.realpath(sys.argv[0]))
+    except Exception as e:
+        info['sys.argv[0]'] = f"ERROR: {e}"
+    
+    try:
+        info['os.getcwd()'] = os.getcwd()
+    except Exception as e:
+        info['os.getcwd()'] = f"ERROR: {e}"
+    
+    info['expanduser(~/Documents)'] = os.path.expanduser('~/Documents')
+    info['final_data_path'] = _data_path()
+    return info
+
+
+def _data_path() -> str:
+    """Get the path to data.json, trying multiple strategies for cross-platform compatibility."""
+    base = None
+    
+    # Strategy 1: Use __file__ if available (works in most Python environments)
+    try:
+        base = os.path.dirname(os.path.realpath(__file__))
+        if base and os.path.isdir(base):
+            return os.path.join(base, DATA_FILENAME)
+    except (NameError, Exception):
+        pass
+    
+    # Strategy 2: Use sys.argv[0] (works when script is run directly)
+    try:
+        if sys.argv and sys.argv[0]:
+            base = os.path.dirname(os.path.realpath(sys.argv[0]))
+            if base and os.path.isdir(base):
+                return os.path.join(base, DATA_FILENAME)
     except Exception:
-        base = None
-    if not base:
-        # try argv[0]
-        try:
-            base = os.path.dirname(sys.argv[0])
-        except Exception:
-            base = None
-    if not base:
-        # fallback to cwd or Pythonista Documents
-        base = os.getcwd() if os.getcwd() else os.path.expanduser('~/Documents')
+        pass
+    
+    # Strategy 3: Use current working directory
+    try:
+        base = os.getcwd()
+        if base and os.path.isdir(base):
+            return os.path.join(base, DATA_FILENAME)
+    except Exception:
+        pass
+    
+    # Strategy 4: Fallback to home Documents folder (Pythonista default)
+    base = os.path.expanduser('~/Documents')
     return os.path.join(base, DATA_FILENAME)
 
 
