@@ -1,0 +1,10 @@
+{
+  "periods": [
+    { "start": "2025-08-01", "duration": 5 },
+    { "start": "2025-08-29", "duration": 5 },
+    { "start": "2025-09-26", "duration": 5 },
+    { "start": "2025-10-24", "duration": 5 }
+  ],
+  "sex": ["2025-10-29", "2025-11-01"],
+  "settings": { "cycle_length": 28, "luteal_phase": 14 }
+}
