@@ -84,34 +84,36 @@ def _blend_hex(c1: str, c2: str, t: float) -> str:
 def get_palette(theme: str = 'light') -> dict:
     if theme == 'dark':
         return {
-            'bg': '#1e1e1e',
-            'panel': '#2a2a2a',
-            'panel_border': '#3a3a3a',
-            'text': '#ffffff',
-            'cell': '#222222',
-            'empty_cell': '#2b2b2b',
-            'period_shades': ['#3e0000', '#660000', '#990000'],
-            'fertile': '#4b2a3a',
-            'ovulation': '#2a3b4b',
-            'sex': '#2a4b2a',
-            'pred_light': '#331111',
-            'pred_dark': '#660000'
+            'bg': '#1a1a2e',
+            'panel': '#16213e',
+            'panel_border': '#0f3460',
+            'text': '#eaeaea',
+            'cell': '#16213e',
+            'empty_cell': '#0f1923',
+            'period_shades': ['#4a0e0e', '#7a1616', '#c41e3a'],
+            'fertile': '#6b4c8a',
+            'ovulation': '#2c5f8d',
+            'sex': '#1e5631',
+            'pred_light': '#3d1f1f',
+            'pred_dark': '#8b2635',
+            'today_border': '#f39c12'
         }
-    # default light
+    # default light - improved modern palette
     return {
-        'bg': '#ffffff',
-        'panel': '#f7f7f7',
-        'panel_border': '#e0e0e0',
-        'text': '#000000',
+        'bg': '#f8f9fa',
+        'panel': '#ffffff',
+        'panel_border': '#dee2e6',
+        'text': '#212529',
         'cell': '#ffffff',
-        'empty_cell': '#efefef',
-        # period intensity shades light->heavy
-        'period_shades': ['#ffebeb', '#ffb3b3', '#ff6666'],
-        'fertile': '#ffd0ff',
-        'ovulation': '#cce0ff',
-        'sex': '#ccffcc',
-        'pred_light': '#fff5f5',
-        'pred_dark': '#ff9999'
+        'empty_cell': '#e9ecef',
+        # period intensity shades light->heavy with better colors
+        'period_shades': ['#ffe5e5', '#ffb3b3', '#ff6b6b'],
+        'fertile': '#e4c1f9',
+        'ovulation': '#a0c4ff',
+        'sex': '#caffbf',
+        'pred_light': '#fff0f0',
+        'pred_dark': '#ffa8a8',
+        'today_border': '#f59e0b'
     }
 
 
@@ -245,8 +247,9 @@ if _HAS_PYTHONISTA:
                 x = 0
                 for c, day in enumerate(week):
                     container = ui.View()
-                    container.frame = (x, y, cell_w-1, cell_h-1)
+                    container.frame = (x, y, cell_w-2, cell_h-2)  # Better spacing
                     container.background_color = palette.get('cell', '#ffffff')
+                    container.corner_radius = 8  # Rounded corners for modern look
                     # empty cell
                     if day == 0:
                         container.background_color = palette.get('empty_cell', '#efefef')
@@ -270,7 +273,7 @@ if _HAS_PYTHONISTA:
                         elif 'sex' in s:
                             container.background_color = palette.get('sex', '#ccffcc')
 
-                        day_lbl = ui.Label(frame=(4, 8, 28, 20))
+                        day_lbl = ui.Label(frame=(8, 6, 28, 22))  # Better position
                         day_lbl.text = str(day)
                         day_lbl.font = ('<system>', 12)
                         day_lbl.text_color = palette.get('text', '#000000')
@@ -284,10 +287,10 @@ if _HAS_PYTHONISTA:
                             ov.font = ('<system>', 14)
                             container.add_subview(ov)
 
-                        # current day highlight
+                        # current day highlight with green outline
                         if d == today:
-                            container.border_width = 2
-                            container.border_color = '#ff9900'
+                            container.border_width = 3
+                            container.border_color = '#22c55e'
 
                         # predicted period days indicator: gradient by proximity to predicted start
                         if d in predicted_days and d > today:
@@ -337,9 +340,10 @@ if _HAS_PYTHONISTA:
                         # only show toggle buttons for today and past dates
                         if d <= today:
                             # period toggle button (above) - use blood-drop icon and intensity shading
-                            pbtn = ui.Button(frame=(4, cell_h-60, 28, 24))
+                            pbtn = ui.Button(frame=(6, cell_h-58, 32, 26))  # Slightly larger
                             pbtn.title = '🩸'
-                            pbtn.font = ('<system>', 14)
+                            pbtn.font = ('<system>', 15)
+                            pbtn.corner_radius = 6
                             shades = palette.get('period_shades', ['#ffebeb', '#ffb3b3', '#ff6666'])
                             if intensity > 0:
                                 pbtn.background_color = shades[max(0, min(2, intensity-1))]
@@ -349,20 +353,23 @@ if _HAS_PYTHONISTA:
                             container.add_subview(pbtn)
 
                             # sex toggle button (below period button) - heart icon with visible active/inactive states
-                            sbtn = ui.Button(frame=(4, cell_h-30, 28, 24))
+                            sbtn = ui.Button(frame=(6, cell_h-28, 32, 26))  # Slightly larger
                             sbtn.title = '♥'
-                            sbtn.font = ('<system>', 14)
+                            sbtn.font = ('<system>', 15)
+                            sbtn.corner_radius = 6
                             if 'sex' in s:
                                 # Active state - bright green background with dark green text
                                 sbtn.background_color = '#90EE90'
                                 sbtn.tint_color = '#006400'
                                 sbtn.border_width = 2
-                                sbtn.border_color = '#006400'
+                                sbtn.border_color = '#2d862d'
+                                sbtn.corner_radius = 8
                             else:
                                 # Inactive state - white background with light grey text
                                 sbtn.background_color = '#ffffff'
                                 sbtn.tint_color = '#CCCCCC'
-                                sbtn.border_width = 0
+                                sbtn.border_width = 1
+                                sbtn.border_color = '#e0e0e0'
                             sbtn.action = (lambda sender, dd=d: self.toggle_sex(dd))
                             container.add_subview(sbtn)
 
@@ -699,31 +706,37 @@ def run_tk_ui():
         # Add hamburger menu button
         tk.Button(header, text='≡', command=menu_dialog, font=('TkDefaultFont', 14)).pack(side='right', padx=5)
 
-        # legend
-        legend = tk.Frame(root)
-        legend.pack(fill='x', pady=4)
-        def _legend_item(parent, color, label):
-            f = tk.Frame(parent)
-            tk.Label(f, width=2, bg=color).pack(side='left')
-            tk.Label(f, text=label).pack(side='left', padx=4)
-            return f
-        _legend_item(legend, '#ffcccc', 'Period').pack(side='left', padx=6)
-        # period intensity examples
-        shades = palette.get('period_shades', ['#ffebeb', '#ffb3b3', '#ff6666'])
-        for i, sh in enumerate(shades, start=1):
-            _legend_item(legend, sh, f'Period {"light" if i==1 else ("med" if i==2 else "heavy")}').pack(side='left', padx=4)
-        _legend_item(legend, '#ffd0ff', 'Fertile').pack(side='left', padx=6)
-        _legend_item(legend, '#cce0ff', 'Ovulation').pack(side='left', padx=6)
-        _legend_item(legend, '#ccffcc', 'Sex').pack(side='left', padx=6)
+        # Compact two-row legend
+        legend_container = tk.Frame(root)
+        legend_container.pack(fill='x', pady=(4, 2))
         
-        # Add predicted marker to legend
-        pred_legend = tk.Frame(legend)
-        pred_container = tk.Frame(pred_legend)
-        tk.Label(pred_container, text="◔", font=('TkDefaultFont', 12), fg='#ff9999').pack()
-        tk.Label(pred_container, text="5", font=('TkDefaultFont', 8), fg='#ff9999').pack()
-        pred_container.pack(side='left')
-        tk.Label(pred_legend, text=" Expected (days)", fg='#ff9999').pack(side='left', padx=4)
-        pred_legend.pack(side='left', padx=6)
+        # Helper function for legend items
+        def _legend_item(parent, color, label, font_size=8):
+            f = tk.Frame(parent)
+            tk.Label(f, width=1, bg=color, font=('TkDefaultFont', font_size)).pack(side='left')
+            tk.Label(f, text=label, font=('TkDefaultFont', font_size)).pack(side='left', padx=2)
+            return f
+        
+        # Row 1: Period intensities
+        legend_row1 = tk.Frame(legend_container)
+        legend_row1.pack()
+        shades = palette.get('period_shades', ['#ffebeb', '#ffb3b3', '#ff6666'])
+        _legend_item(legend_row1, shades[0], 'Light').pack(side='left', padx=3)
+        _legend_item(legend_row1, shades[1], 'Med').pack(side='left', padx=3)
+        _legend_item(legend_row1, shades[2], 'Heavy').pack(side='left', padx=3)
+        _legend_item(legend_row1, palette.get('fertile', '#ffd0ff'), 'Fertile').pack(side='left', padx=3)
+        
+        # Row 2: Other markers
+        legend_row2 = tk.Frame(legend_container)
+        legend_row2.pack()
+        _legend_item(legend_row2, palette.get('ovulation', '#cce0ff'), 'Ovulation').pack(side='left', padx=3)
+        _legend_item(legend_row2, palette.get('sex', '#ccffcc'), 'Sex').pack(side='left', padx=3)
+        
+        # Predicted marker
+        pred_frame = tk.Frame(legend_row2)
+        tk.Label(pred_frame, text="◔", font=('TkDefaultFont', 10), fg='#ff9999').pack(side='left')
+        tk.Label(pred_frame, text="Expected", font=('TkDefaultFont', 8), fg='#ff9999').pack(side='left', padx=2)
+        pred_frame.pack(side='left', padx=3)
 
         cal_frame = tk.Frame(root)
         cal_frame.pack()
@@ -782,7 +795,7 @@ def run_tk_ui():
                     # per-day intensity map
                     intensity = int(data.get('period_levels', {}).get(iso, 0))
                     # choose background based on priority: period intensity > fertile > ovulation > sex
-                    bg = palette.get('cell', 'white') if 'palette' in globals() else 'white'
+                    bg = palette.get('cell', 'white')
                     if intensity > 0 or 'period' in s:
                         shades = palette.get('period_shades', ['#ffebeb', '#ffb3b3', '#ff6666'])
                         bg = shades[max(0, min(2, intensity-1))]
@@ -793,36 +806,29 @@ def run_tk_ui():
                     elif 'sex' in s:
                         bg = palette.get('sex', '#ccffcc')
 
-                    cell = tk.Frame(cal_frame, width=48, height=64, bg=bg, relief='ridge', bd=1)
+                    # Modern cell styling with rounded corners (simulated with flat relief)
+                    cell = tk.Frame(cal_frame, width=52, height=95, bg=bg, relief='flat', bd=0, highlightthickness=1, highlightbackground='#dee2e6')
                     cell.grid_propagate(False)
-                    cell.grid(row=r+1, column=c, padx=1, pady=1)
+                    cell.pack_propagate(False)  # Prevent internal content from changing cell size
+                    cell.grid(row=r+1, column=c, padx=2, pady=2)  # Better spacing
                     
-                    # predicted period days indicator (gradient by proximity)
+                    # Current day highlight with green outline
+                    if d == today:
+                        cell.config(highlightthickness=3, highlightbackground='#22c55e')
+                    
+                    # predicted period days indicator - use thick border instead of fill
                     if d in predicted_days and d > today:
-                        # find nearest predicted start >= d
-                        nearest = None
-                        for ps in predicted_starts:
-                            if ps >= d:
-                                dist = (ps - d).days
-                                if nearest is None or dist < nearest:
-                                    nearest = dist
-                        if nearest is None:
-                            nearest = 0
-                        t = max(0.0, min(1.0, 1.0 - (nearest / max(1, pred_duration))))
-                        pred_color = _blend_hex(palette.get('pred_light', '#fff5f5'), palette.get('pred_dark', '#ff9999'), t)
-                        cell.config(relief='solid', bd=1)
-                        cell.config(bg=pred_color)
-                        for widget in cell.winfo_children():
-                            try:
-                                widget.config(bg=pred_color)
-                            except Exception:
-                                pass
+                        # Use thick border to indicate predicted period
+                        pred_color = palette.get('pred_dark', '#ff9999')
+                        cell.config(relief='flat', bd=0, highlightthickness=4, highlightbackground=pred_color)
                         if d in predicted_starts:
-                            pred_container = tk.Frame(cell, bg=cell.cget('bg'))
+                            # Slightly thicker for predicted start day
+                            cell.config(highlightthickness=5)
+                            pred_container = tk.Frame(cell, bg=bg)
                             pred_container.place(x=26, y=2)
-                            pred_mark = tk.Label(pred_container, text='◔', font=('TkDefaultFont', 12), fg=palette.get('pred_dark', '#ff9999'), bg=cell.cget('bg'))
+                            pred_mark = tk.Label(pred_container, text='◔', font=('TkDefaultFont', 12), fg=pred_color, bg=bg)
                             pred_mark.pack()
-                            dur_label = tk.Label(pred_container, text=str(pred_duration), font=('TkDefaultFont', 8), fg=palette.get('pred_dark', '#ff9999'), bg=cell.cget('bg'))
+                            dur_label = tk.Label(pred_container, text=str(pred_duration), font=('TkDefaultFont', 8), fg=pred_color, bg=bg)
                             dur_label.pack()
                     
                     # fertility bar at top (thin)
@@ -860,9 +866,14 @@ def run_tk_ui():
                         else:
                             sbtn = tk.Button(cell, text='♥', bg='#ffffff', fg='#CCCCCC', relief='raised', command=lambda dd=d: sex_button_action(dd))
                         sbtn.pack(side='top', anchor='w', padx=2, pady=(0,4))
-                    # highlight today
+                    else:
+                        # Add spacer for future days to maintain consistent cell height
+                        spacer = tk.Frame(cell, height=77, bg=bg)  # Increased height for taller cells
+                        spacer.pack(side='bottom')
+                    
+                    # highlight today with green outline
                     if d == today:
-                        cell.config(bd=3, relief='solid')
+                        cell.config(highlightthickness=3, highlightbackground='#22c55e')
 
     def settings_dialog():
         data = load_data()
@@ -895,6 +906,20 @@ def run_tk_ui():
     # build root
     root = tk.Tk()
     root.title('PregnancyTracker (macOS)')
+    
+    # Set window size based on content (7 columns * wider cells + comfortable margins)
+    window_width = 480  # Comfortable width for 7-day calendar
+    window_height = 700  # Increased for taller cells
+    
+    # Center window on screen
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x = (screen_width - window_width) // 2
+    y = (screen_height - window_height) // 2
+    
+    root.geometry(f'{window_width}x{window_height}+{x}+{y}')
+    root.resizable(False, False)  # Prevent resizing for consistent layout
+    
     nav_state = {'year': cur_year, 'month': cur_month}
     refresh_calendar(root, cur_year, cur_month)
     root.mainloop()
